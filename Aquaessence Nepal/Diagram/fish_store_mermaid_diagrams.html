@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fish & Accessories Store — Mermaid Diagrams</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f7ff; padding: 32px; }
+  h1 { color: #1565c0; font-size: 28px; margin-bottom: 6px; }
+  .subtitle { color: #666; margin-bottom: 40px; font-size: 14px; }
+  .diagram-section { background: white; border-radius: 16px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.07); }
+  .diagram-title { font-size: 18px; font-weight: 700; color: #1565c0; margin-bottom: 6px; }
+  .diagram-desc { font-size: 13px; color: #666; margin-bottom: 24px; border-left: 3px solid #1565c0; padding-left: 12px; }
+  pre.code { background: #1e293b; color: #e2e8f0; border-radius: 10px; padding: 20px; font-size: 12px; overflow-x: auto; margin-top: 24px; white-space: pre; }
+  .mermaid { text-align: center; }
+</style>
+</head>
+<body>
+<h1>🐠 Fish & Accessories Store — Mermaid Diagrams</h1>
+<p class="subtitle">Complete architectural and flow diagrams generated from project source code</p>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 1. USER FLOW DIAGRAM -->
+<!-- ══════════════════════════════════════════ -->
+<div class="diagram-section">
+  <div class="diagram-title">1. User Flow Diagram</div>
+  <div class="diagram-desc">Complete user journey from landing on index.html through browsing, cart, checkout to order confirmation</div>
+  <div class="mermaid">
+flowchart TD
+    A([🌐 index.html\nHome Page]) --> B[Login Page\nlogin.php]
+    B --> C{Authenticate\nUsername + Password}
+    C -->|Invalid| D[❌ Show Error\nRetry Login]
+    D --> B
+    C -->|role = admin| E[🔐 Admin Dashboard\nadmin-dashboard.php]
+    C -->|role = user| F[👤 User Dashboard\nuser-dashboard.php]
+
+    F --> G[Browse Products\nbrowse.php]
+    G --> H[Filter by Category\nAll / Fish / Plants / Aquarium]
+    H --> I[Search Products\nSearch by name/category]
+    I --> J[View Product Card\nName, Price, Image, Rating]
+    J --> K[Add to Cart\nlocalStorage]
+    K -->|Continue Shopping| G
+    K -->|Proceed| L[🛒 Cart Review\ncheckout.php]
+
+    L --> M[Fill Checkout Form\nName, Email, Phone, Address]
+    M --> N[Select Payment Method\nCash / Card / eSewa / Khalti]
+    N --> O[Submit Order\nPOST checkout.php]
+    O --> P[(💾 MySQL\norders table\norder_items table)]
+    P --> Q[✅ Order Confirmed\nSuccess Message]
+    Q --> R[Clear Cart\nlocalStorage cleared]
+    R --> F
+
+    E --> S[View Statistics\nTotal Users & Orders]
+    E --> T[View All Orders\norders table]
+    T --> U[View Order Details\nget_order_details.php AJAX]
+    U --> V[Update Order Status\nPending / Completed / Cancelled]
+    E --> W[Admin Functions\ninstall.php / reset_password.php]
+
+    F --> X[Logout\nlogout.php]
+    E --> X
+    X --> A
+
+    style A fill:#1565c0,color:#fff
+    style E fill:#d32f2f,color:#fff
+    style F fill:#2e7d32,color:#fff
+    style P fill:#f57c00,color:#fff
+    style Q fill:#2e7d32,color:#fff
+    style X fill:#666,color:#fff
+  </div>
+
+  <pre class="code">flowchart TD
+    A([🌐 index.html\nHome Page]) --> B[Login Page\nlogin.php]
+    B --> C{Authenticate\nUsername + Password}
+    C -->|Invalid| D[❌ Show Error\nRetry Login]
+    D --> B
+    C -->|role = admin| E[🔐 Admin Dashboard\nadmin-dashboard.php]
+    C -->|role = user| F[👤 User Dashboard\nuser-dashboard.php]
+
+    F --> G[Browse Products\nbrowse.php]
+    G --> H[Filter by Category\nAll / Fish / Plants / Aquarium]
+    H --> I[Search Products\nSearch by name/category]
+    I --> J[View Product Card\nName, Price, Image, Rating]
+    J --> K[Add to Cart\nlocalStorage]
+    K -->|Continue Shopping| G
+    K -->|Proceed| L[🛒 Cart Review\ncheckout.php]
+
+    L --> M[Fill Checkout Form\nName, Email, Phone, Address]
+    M --> N[Select Payment Method\nCash / Card / eSewa / Khalti]
+    N --> O[Submit Order\nPOST checkout.php]
+    O --> P[(💾 MySQL\norders table\norder_items table)]
+    P --> Q[✅ Order Confirmed\nSuccess Message]
+    Q --> R[Clear Cart\nlocalStorage cleared]
+    R --> F
+
+    E --> S[View Statistics\nTotal Users & Orders]
+    E --> T[View All Orders\norders table]
+    T --> U[View Order Details\nget_order_details.php AJAX]
+    U --> V[Update Order Status\nPending / Completed / Cancelled]
+    E --> W[Admin Functions\ninstall.php / reset_password.php]
+
+    F --> X[Logout\nlogout.php]
+    E --> X
+    X --> A</pre>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 2. DATABASE SCHEMA / ER DIAGRAM -->
+<!-- ══════════════════════════════════════════ -->
+<div class="diagram-section">
+  <div class="diagram-title">2. Database Schema (ER Diagram)</div>
+  <div class="diagram-desc">Entity-relationship diagram of the fish_accessories_store MySQL database from install.php and checkout.php</div>
+  <div class="mermaid">
+erDiagram
+    USERS {
+        int id PK
+        varchar username UK
+        varchar email UK
+        varchar password
+        enum role
+        timestamp created_at
+    }
+
+    PRODUCTS {
+        int id PK
+        varchar name
+        varchar category
+        decimal price
+        int stock
+        varchar image_url
+        text description
+        timestamp created_at
+    }
+
+    ORDERS {
+        int id PK
+        int user_id FK
+        varchar full_name
+        varchar email
+        varchar phone
+        text address
+        varchar payment_method
+        decimal total_amount
+        enum status
+        timestamp created_at
+    }
+
+    ORDER_ITEMS {
+        int id PK
+        int order_id FK
+        int product_id FK
+        varchar product_name
+        varchar product_category
+        decimal price
+        int quantity
+        decimal line_total
+    }
+
+    USERS ||--o{ ORDERS : "places"
+    ORDERS ||--|{ ORDER_ITEMS : "contains"
+    PRODUCTS ||--o{ ORDER_ITEMS : "included in"
+  </div>
+
+  <pre class="code">erDiagram
+    USERS {
+        int id PK
+        varchar username UK
+        varchar email UK
+        varchar password
+        enum role
+        timestamp created_at
+    }
+
+    PRODUCTS {
+        int id PK
+        varchar name
+        varchar category
+        decimal price
+        int stock
+        varchar image_url
+        text description
+        timestamp created_at
+    }
+
+    ORDERS {
+        int id PK
+        int user_id FK
+        varchar full_name
+        varchar email
+        varchar phone
+        text address
+        varchar payment_method
+        decimal total_amount
+        enum status
+        timestamp created_at
+    }
+
+    ORDER_ITEMS {
+        int id PK
+        int order_id FK
+        int product_id FK
+        varchar product_name
+        varchar product_category
+        decimal price
+        int quantity
+        decimal line_total
+    }
+
+    USERS ||--o{ ORDERS : "places"
+    ORDERS ||--|{ ORDER_ITEMS : "contains"
+    PRODUCTS ||--o{ ORDER_ITEMS : "included in"</pre>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 3. FILE ARCHITECTURE -->
+<!-- ══════════════════════════════════════════ -->
+<div class="diagram-section">
+  <div class="diagram-title">3. Project File Architecture</div>
+  <div class="diagram-desc">All files in the project and their relationships/dependencies</div>
+  <div class="mermaid">
+graph LR
+    subgraph Frontend["🖥️ Frontend Pages"]
+        IDX[index.html\nLanding Page]
+        LH[login.html\nStatic Login UI]
+        LB[browse.php\nProduct Browsing]
+        CO[checkout.php\nCheckout Form]
+        UD[user-dashboard.php\nUser Home]
+    end
+
+    subgraph Backend["⚙️ Backend PHP"]
+        LP[login.php\nAuth Handler]
+        LO[logout.php\nSession Destroy]
+        AD[admin-dashboard.php\nAdmin Panel]
+        GOD[get_order_details.php\nAJAX API]
+        AP[add_products.php\nSeed Products]
+        IN[install.php\nDB Setup]
+    end
+
+    subgraph Config["🔧 Configuration"]
+        CF[config.php\nDB Connection]
+    end
+
+    subgraph Database["🗄️ MySQL Database\nfish_accessories_store"]
+        TU[(users)]
+        TP[(products)]
+        TO[(orders)]
+        TOI[(order_items)]
+    end
+
+    subgraph Assets["🖼️ Static Assets"]
+        IMG[images/\n40+ images]
+    end
+
+    IDX -->|links to| LP
+    LH -->|form posts to| LP
+    LP -->|includes| CF
+    LP -->|queries| TU
+    LP -->|redirect admin| AD
+    LP -->|redirect user| UD
+    LO -->|destroys session| IDX
+
+    UD -->|links to| LB
+    LB -->|includes| CF
+    LB -->|fetches via AJAX| TP
+    LB -->|add to cart| CO
+
+    CO -->|includes| CF
+    CO -->|inserts| TO
+    CO -->|inserts| TOI
+
+    AD -->|includes| CF
+    AD -->|queries| TU
+    AD -->|queries| TO
+    AD -->|AJAX calls| GOD
+    GOD -->|includes| CF
+    GOD -->|queries| TO
+    GOD -->|queries| TOI
+
+    AP -->|includes| CF
+    AP -->|inserts| TP
+
+    IN -->|creates| TU
+    IN -->|creates| TP
+    IN -->|creates| TO
+    IN -->|creates| TOI
+
+    LB -->|loads| IMG
+
+    style Frontend fill:#e3f2fd,stroke:#1565c0
+    style Backend fill:#fce4ec,stroke:#c62828
+    style Config fill:#fff3e0,stroke:#e65100
+    style Database fill:#e8f5e9,stroke:#2e7d32
+    style Assets fill:#f3e5f5,stroke:#6a1b9a
+  </div>
+
+  <pre class="code">graph LR
+    subgraph Frontend["🖥️ Frontend Pages"]
+        IDX[index.html]
+        LH[login.html]
+        LB[browse.php]
+        CO[checkout.php]
+        UD[user-dashboard.php]
+    end
+
+    subgraph Backend["⚙️ Backend PHP"]
+        LP[login.php]
+        LO[logout.php]
+        AD[admin-dashboard.php]
+        GOD[get_order_details.php]
+        AP[add_products.php]
+        IN[install.php]
+    end
+
+    subgraph Config["🔧 Config"]
+        CF[config.php]
+    end
+
+    subgraph Database["🗄️ MySQL"]
+        TU[(users)]
+        TP[(products)]
+        TO[(orders)]
+        TOI[(order_items)]
+    end
+
+    IDX --> LP
+    LP -->|includes| CF
+    LP -->|queries| TU
+    LP -->|redirect admin| AD
+    LP -->|redirect user| UD
+    LO --> IDX
+    UD --> LB
+    LB -->|includes| CF
+    LB -->|AJAX| TP
+    LB --> CO
+    CO -->|includes| CF
+    CO -->|inserts| TO
+    CO -->|inserts| TOI
+    AD -->|includes| CF
+    AD -->|queries| TU
+    AD -->|queries| TO
+    AD -->|AJAX| GOD
+    GOD -->|includes| CF
+    AP -->|inserts| TP
+    IN --> TU
+    IN --> TP</pre>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 4. AUTHENTICATION SEQUENCE DIAGRAM -->
+<!-- ══════════════════════════════════════════ -->
+<div class="diagram-section">
+  <div class="diagram-title">4. Authentication Sequence Diagram</div>
+  <div class="diagram-desc">Step-by-step login flow showing browser, PHP, and MySQL interactions</div>
+  <div class="mermaid">
+sequenceDiagram
+    actor User
+    participant Browser
+    participant login.php
+    participant config.php
+    participant MySQL
+    participant Session
+
+    User->>Browser: Open index.html
+    Browser->>login.php: Click Login link
+    login.php-->>Browser: Render login form
+
+    User->>Browser: Enter username, password, role
+    Browser->>login.php: POST username + password + role
+
+    login.php->>config.php: include config.php
+    config.php->>MySQL: new mysqli(localhost, root, fish_accessories_store)
+    MySQL-->>config.php: $conn established
+    config.php-->>login.php: $conn ready
+
+    login.php->>MySQL: SELECT id, username, password, role FROM users WHERE username=? AND role=?
+    MySQL-->>login.php: Result row
+
+    alt User found
+        login.php->>login.php: password_verify($password, $hash)
+        alt Password correct
+            login.php->>Session: $_SESSION[user_id, username, role]
+            alt role = admin
+                login.php-->>Browser: Redirect → admin-dashboard.php
+            else role = user
+                login.php-->>Browser: Redirect → user-dashboard.php
+            end
+        else Password wrong
+            login.php-->>Browser: Show "Invalid password!" error
+        end
+    else User not found
+        login.php-->>Browser: Show "User not found!" error
+    end
+
+    User->>Browser: Click Logout
+    Browser->>logout.php: GET logout.php
+    logout.php->>Session: session_destroy()
+    logout.php-->>Browser: Redirect → index.html
+  </div>
+
+  <pre class="code">sequenceDiagram
+    actor User
+    participant Browser
+    participant login.php
+    participant config.php
+    participant MySQL
+    participant Session
+
+    User->>Browser: Open index.html
+    Browser->>login.php: Click Login link
+    login.php-->>Browser: Render login form
+
+    User->>Browser: Enter username, password, role
+    Browser->>login.php: POST username + password + role
+
+    login.php->>config.php: include config.php
+    config.php->>MySQL: new mysqli(localhost, root)
+    MySQL-->>config.php: Connection established
+    login.php->>MySQL: SELECT ... WHERE username=? AND role=?
+    MySQL-->>login.php: Result row
+
+    alt User found
+        login.php->>login.php: password_verify()
+        alt Correct
+            login.php->>Session: Set user_id, username, role
+            alt admin
+                login.php-->>Browser: Redirect admin-dashboard.php
+            else user
+                login.php-->>Browser: Redirect user-dashboard.php
+            end
+        else Wrong
+            login.php-->>Browser: Show error
+        end
+    else Not found
+        login.php-->>Browser: Show error
+    end</pre>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 5. ORDER PLACEMENT SEQUENCE -->
+<!-- ══════════════════════════════════════════ -->
+<div class="diagram-section">
+  <div class="diagram-title">5. Order Placement Sequence Diagram</div>
+  <div class="diagram-desc">How a user browses, adds to cart, and places an order — including AJAX and database transactions</div>
+  <div class="mermaid">
+sequenceDiagram
+    actor User
+    participant browse.php
+    participant products_api.php
+    participant localStorage
+    participant checkout.php
+    participant MySQL
+
+    User->>browse.php: Visit browse.php (session check)
+    browse.php->>products_api.php: fetch() GET /products_api.php
+    products_api.php->>MySQL: SELECT * FROM products
+    MySQL-->>products_api.php: Products array
+    products_api.php-->>browse.php: JSON {success, products[]}
+    browse.php-->>User: Render product grid cards
+
+    User->>browse.php: Click Filter (Fish/Plants/Aquarium)
+    browse.php-->>User: Filter products client-side
+
+    User->>browse.php: Click "+" Add to Cart button
+    browse.php->>localStorage: cart.push({id, name, price, qty})
+    localStorage-->>browse.php: Cart updated
+    browse.php-->>User: Show toast notification
+
+    User->>browse.php: Click 🛒 Cart button
+    browse.php->>checkout.php: Redirect to checkout.php
+
+    checkout.php->>localStorage: Read cart items
+    localStorage-->>checkout.php: Cart data JSON
+    checkout.php-->>User: Show cart summary + checkout form
+
+    User->>checkout.php: Fill form (name, email, phone, address, payment)
+    User->>checkout.php: Submit form POST
+
+    checkout.php->>MySQL: INSERT INTO orders (user_id, full_name, email, phone, address, payment_method, total_amount, status='Pending')
+    MySQL-->>checkout.php: order_id (insert_id)
+
+    loop For each cart item
+        checkout.php->>MySQL: INSERT INTO order_items (order_id, product_id, name, price, qty, line_total)
+        MySQL-->>checkout.php: Item saved
+    end
+
+    checkout.php->>localStorage: Clear cart
+    checkout.php-->>User: ✅ Order Confirmed message
+  </div>
+
+  <pre class="code">sequenceDiagram
+    actor User
+    participant browse.php
+    participant products_api.php
+    participant localStorage
+    participant checkout.php
+    participant MySQL
+
+    User->>browse.php: Visit (session check)
+    browse.php->>products_api.php: fetch() GET
+    products_api.php->>MySQL: SELECT * FROM products
+    MySQL-->>products_api.php: Products[]
+    products_api.php-->>browse.php: JSON response
+    browse.php-->>User: Render product cards
+
+    User->>browse.php: Click Filter tab
+    browse.php-->>User: Filter client-side
+
+    User->>browse.php: Click Add to Cart
+    browse.php->>localStorage: cart.push(product)
+    browse.php-->>User: Toast notification
+
+    User->>browse.php: Click Cart button
+    browse.php->>checkout.php: redirect
+
+    checkout.php->>localStorage: Read cart
+    checkout.php-->>User: Cart summary + form
+
+    User->>checkout.php: Submit POST
+
+    checkout.php->>MySQL: INSERT INTO orders
+    MySQL-->>checkout.php: order_id
+
+    loop Each cart item
+        checkout.php->>MySQL: INSERT INTO order_items
+    end
+
+    checkout.php-->>User: ✅ Order Confirmed</pre>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 6. ADMIN ORDER MANAGEMENT -->
+<!-- ══════════════════════════════════════════ -->
+<div class="diagram-section">
+  <div class="diagram-title">6. Admin Order Management Flow</div>
+  <div class="diagram-desc">How admin views and updates order statuses via AJAX</div>
+  <div class="mermaid">
+sequenceDiagram
+    actor Admin
+    participant admin-dashboard.php
+    participant get_order_details.php
+    participant MySQL
+
+    Admin->>admin-dashboard.php: Login with role=admin
+    admin-dashboard.php->>MySQL: SELECT COUNT(*) FROM users WHERE role='user'
+    admin-dashboard.php->>MySQL: SELECT COUNT(*) FROM orders
+    admin-dashboard.php->>MySQL: SELECT * FROM orders ORDER BY created_at DESC
+    MySQL-->>admin-dashboard.php: Stats + Orders[]
+    admin-dashboard.php-->>Admin: Dashboard with stats table
+
+    Admin->>admin-dashboard.php: Click "View" button on order
+    admin-dashboard.php->>get_order_details.php: fetch('get_order_details.php?order_id=X')
+    get_order_details.php->>MySQL: SELECT * FROM orders WHERE id=X
+    get_order_details.php->>MySQL: SELECT * FROM order_items WHERE order_id=X
+    MySQL-->>get_order_details.php: order + items[]
+    get_order_details.php-->>admin-dashboard.php: JSON {success, order, items}
+    admin-dashboard.php-->>Admin: Show modal with order details
+
+    Admin->>admin-dashboard.php: Change status dropdown
+    Admin->>admin-dashboard.php: Submit update form POST
+    admin-dashboard.php->>MySQL: UPDATE orders SET status='Completed' WHERE id=X
+    MySQL-->>admin-dashboard.php: Updated
+    admin-dashboard.php-->>Admin: Reload page with updated status
+  </div>
+
+  <pre class="code">sequenceDiagram
+    actor Admin
+    participant admin-dashboard.php
+    participant get_order_details.php
+    participant MySQL
+
+    Admin->>admin-dashboard.php: Login (admin role)
+    admin-dashboard.php->>MySQL: SELECT COUNT(*) FROM users
+    admin-dashboard.php->>MySQL: SELECT COUNT(*) FROM orders
+    admin-dashboard.php->>MySQL: SELECT * FROM orders
+    MySQL-->>admin-dashboard.php: Stats + Orders
+
+    Admin->>admin-dashboard.php: Click View button
+    admin-dashboard.php->>get_order_details.php: fetch AJAX
+    get_order_details.php->>MySQL: SELECT order + items
+    MySQL-->>get_order_details.php: Data
+    get_order_details.php-->>admin-dashboard.php: JSON
+    admin-dashboard.php-->>Admin: Modal popup
+
+    Admin->>admin-dashboard.php: Update status POST
+    admin-dashboard.php->>MySQL: UPDATE orders SET status=?
+    admin-dashboard.php-->>Admin: Reload updated</pre>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 7. STATE DIAGRAM: ORDER STATUS -->
+<!-- ══════════════════════════════════════════ -->
+<div class="diagram-section">
+  <div class="diagram-title">7. Order Status State Diagram</div>
+  <div class="diagram-desc">Possible states of an order and transitions managed by admin</div>
+  <div class="mermaid">
+stateDiagram-v2
+    [*] --> Pending : User submits checkout form\ncheckout.php INSERT
+
+    Pending --> Completed : Admin updates status\nadmin-dashboard.php POST
+    Pending --> Cancelled : Admin cancels order\nadmin-dashboard.php POST
+
+    Completed --> [*] : Order fulfilled
+    Cancelled --> [*] : Order terminated
+
+    note right of Pending
+        Default status on order creation
+        Admin can view full details
+        Customer details visible
+    end note
+
+    note right of Completed
+        Highlighted in green
+        status-completed CSS class
+    end note
+
+    note right of Cancelled
+        Highlighted in red
+        status-cancelled CSS class
+    end note
+  </div>
+
+  <pre class="code">stateDiagram-v2
+    [*] --> Pending : User submits checkout
+
+    Pending --> Completed : Admin updates status
+    Pending --> Cancelled : Admin cancels
+
+    Completed --> [*] : Fulfilled
+    Cancelled --> [*] : Terminated</pre>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 8. CLASS DIAGRAM: PHP COMPONENTS -->
+<!-- ══════════════════════════════════════════ -->
+<div class="diagram-section">
+  <div class="diagram-title">8. Component / Class Diagram</div>
+  <div class="diagram-desc">PHP files as logical components with their methods, inputs and outputs</div>
+  <div class="mermaid">
+classDiagram
+    class config_php {
+        +string servername
+        +string username
+        +string password
+        +string dbname
+        +mysqli conn
+        +connect() void
+        +set_charset(utf8) void
+    }
+
+    class login_php {
+        -string error
+        -string role
+        +handlePOST() void
+        +verifyPassword(input, hash) bool
+        +setSession(id, username, role) void
+        +redirectByRole(role) void
+        +renderForm() HTML
+    }
+
+    class logout_php {
+        +session_start() void
+        +session_destroy() void
+        +redirect(index.html) void
+    }
+
+    class admin_dashboard_php {
+        -int user_count
+        -int order_count
+        -array orders
+        +checkAdminSession() void
+        +getStatistics() void
+        +getAllOrders() array
+        +handleStatusUpdate() void
+        +renderDashboard() HTML
+        +viewOrderDetailsAJAX() void
+    }
+
+    class get_order_details_php {
+        +checkAdminSession() void
+        +getOrder(order_id) object
+        +getOrderItems(order_id) array
+        +returnJSON(success, order, items) JSON
+    }
+
+    class browse_php {
+        +checkUserSession() void
+        +renderProductGrid() HTML
+        +filterByCategory(cat) void
+        +searchProducts(query) void
+        +addToCart(product) void
+        +loadProductsAPI() fetch
+    }
+
+    class checkout_php {
+        +checkUserSession() void
+        +readCartFromPOST() array
+        +insertOrder(user_id, details, total) int
+        +insertOrderItems(order_id, items) void
+        +renderCheckoutForm() HTML
+        +showSuccessMessage() void
+    }
+
+    class install_php {
+        +createDatabase() void
+        +createUsersTable() void
+        +createProductsTable() void
+        +insertAdminUser() void
+        +insertTestUser() void
+    }
+
+    config_php <.. login_php : includes
+    config_php <.. admin_dashboard_php : includes
+    config_php <.. get_order_details_php : includes
+    config_php <.. browse_php : includes
+    config_php <.. checkout_php : includes
+    config_php <.. install_php : uses
+    admin_dashboard_php --> get_order_details_php : AJAX fetch
+  </div>
+
+  <pre class="code">classDiagram
+    class config_php {
+        +string servername
+        +string dbname
+        +mysqli conn
+        +connect()
+    }
+    class login_php {
+        +handlePOST()
+        +verifyPassword()
+        +setSession()
+        +redirectByRole()
+    }
+    class admin_dashboard_php {
+        +checkAdminSession()
+        +getStatistics()
+        +getAllOrders()
+        +handleStatusUpdate()
+    }
+    class checkout_php {
+        +checkUserSession()
+        +insertOrder()
+        +insertOrderItems()
+    }
+    config_php <.. login_php : includes
+    config_php <.. admin_dashboard_php : includes
+    config_php <.. checkout_php : includes
+    admin_dashboard_php --> get_order_details_php : AJAX</pre>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { curve: 'basis', padding: 20 },
+    sequence: { diagramMarginX: 30, diagramMarginY: 20 },
+    er: { diagramPadding: 20 }
+  });
+</script>
+</body>
+</html>

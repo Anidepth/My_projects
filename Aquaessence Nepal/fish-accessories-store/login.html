@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fish & Accessories Store - Login</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥬</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --green: #1e40af;
+            --green-dark: #1e3a8a;
+            --mint: #97bc62;
+            --bg: #eef7ea;
+            --text: #214223;
+            --muted: #5f6f60;
+            --white: #fff;
+            --shadow: 0 24px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #eaf8e8 0%, #dff1d8 45%, #cfe6c8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            color: var(--text);
+        }
+
+        .auth-shell {
+            width: min(1180px, 100%);
+            min-height: 680px;
+            display: grid;
+            grid-template-columns: 1.1fr 0.95fr;
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .auth-panel {
+            padding: 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,252,243,0.96));
+        }
+
+        .auth-panel h2 {
+            font-size: clamp(2rem, 4vw, 3.2rem);
+            color: var(--green);
+            margin-bottom: 10px;
+        }
+
+        .auth-panel p.subtitle {
+            color: var(--muted);
+            margin-bottom: 24px;
+        }
+
+        .mode-switch {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 22px;
+            background: #edf5ea;
+            padding: 8px;
+            border-radius: 14px;
+        }
+
+        .mode-switch button {
+            flex: 1;
+            border: none;
+            padding: 12px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--green);
+            background: transparent;
+            transition: all 0.25s ease;
+        }
+
+        .mode-switch button.active {
+            background: var(--green);
+            color: white;
+            box-shadow: 0 10px 20px rgba(44,95,45,0.2);
+        }
+
+        .auth-form {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .auth-form.active {
+            display: flex;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            border: 1px solid #d9e7d5;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 1rem;
+            outline: none;
+            background: #fff;
+        }
+
+        .input-group input:focus {
+            border-color: var(--green);
+            box-shadow: 0 0 0 4px rgba(44, 95, 45, 0.08);
+        }
+
+        .submit-btn {
+            border: none;
+            border-radius: 12px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, var(--green) 0%, #3b82f6 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(44,95,45,0.2);
+        }
+
+        .error-message {
+            display: none;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #fdf1f1;
+            color: #c12626;
+            border: 1px solid #f3caca;
+            font-size: 0.92rem;
+        }
+
+        .toggle-row {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .toggle-row a {
+            color: var(--green);
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .promo-panel {
+            position: relative;
+            background:
+                linear-gradient(135deg, rgba(31, 70, 32, 0.72), rgba(47, 143, 70, 0.62)),
+                url('images/header-bg.png') center/cover no-repeat;
+            color: white;
+            padding: 40px;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .promo-card {
+            width: 100%;
+            min-height: 100%;
+            border-radius: 24px;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.18);
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .promo-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            align-items: flex-start;
+        }
+
+        .promo-badge {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            display: grid;
+            place-content: center;
+            background: rgba(255,255,255,0.18);
+            font-size: 2rem;
+        }
+
+        .promo-card h3 {
+            font-size: clamp(1.7rem, 3vw, 2.4rem);
+            line-height: 1.1;
+            margin-bottom: 10px;
+        }
+
+        .promo-card p {
+            color: rgba(255,255,255,0.92);
+            line-height: 1.6;
+        }
+
+        .promo-figure {
+            width: 100%;
+            min-height: 320px;
+            border-radius: 22px;
+            background: rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .promo-figure img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .promo-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ghost-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.65);
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            background: rgba(255,255,255,0.06);
+        }
+
+        .ghost-btn:hover {
+            background: white;
+            color: var(--green);
+        }
+
+        .mobile-switch {
+            display: none;
+            margin-top: 14px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .mobile-switch a {
+            color: var(--green);
+            font-weight: 700;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        @media (max-width: 960px) {
+            .auth-shell {
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+
+            .promo-panel {
+                min-height: 420px;
+                padding: 24px;
+            }
+
+            .auth-panel {
+                padding: 32px 24px;
+            }
+
+            .mobile-switch {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-shell" id="authShell">
+        <section class="auth-panel">
+            <h2 id="formTitle">Welcome Back!</h2>
+            <p class="subtitle" id="formSubtitle">Sign in to Fish & Accessories Store</p>
+
+            <div class="mode-switch">
+                <button type="button" id="userBtn" class="active">User Login</button>
+                <button type="button" id="adminBtn">Admin Login</button>
+            </div>
+
+            <form class="auth-form active" id="loginForm" action="login.php" method="POST">
+                <input type="hidden" name="role" id="roleInput" value="user">
+                <div class="input-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="submit-btn">Sign In</button>
+                <div class="error-message" id="loginError"></div>
+            </form>
+
+            <form class="auth-form" id="signupForm">
+                <div class="input-group">
+                    <label for="signupUsername">Username</label>
+                    <input type="text" id="signupUsername" placeholder="Choose a username" required>
+                </div>
+                <div class="input-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="input-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" placeholder="Create a password" required>
+                </div>
+                <div class="input-group">
+                    <label for="signupConfirm">Confirm Password</label>
+                    <input type="password" id="signupConfirm" placeholder="Confirm your password" required>
+                </div>
+                <button type="submit" class="submit-btn">Sign Up</button>
+                <div class="error-message" id="signupError"></div>
+            </form>
+
+            <div class="toggle-row" id="desktopToggleRow">
+                <span id="togglePrompt">Don't have an account?</span>
+                <a id="toggleLink" onclick="toggleForms()">Sign Up</a>
+            </div>
+            <div class="mobile-switch">
+                <span>Already have an account?</span> <a onclick="showLogin()">Sign In</a>
+            </div>
+        </section>
+
+        <aside class="promo-panel">
+            <div class="promo-card">
+                <div class="promo-top">
+                    <div>
+                        <h3 id="promoTitle">Healthy fish, fast login.</h3>
+                        <p id="promoText">Switch between user and admin access with a clear, visible layout that stays readable on desktop and mobile.</p>
+                    </div>
+                    <div class="promo-badge">🥬</div>
+                </div>
+                <div class="promo-figure">
+                    <img id="promoImage" src="images/header-1.png" alt="Grocery promotion">
+                </div>
+                <div class="promo-actions">
+                    <a href="index.html" class="ghost-btn">Back to Home</a>
+                    <button type="button" class="ghost-btn" id="promoSwitchBtn">Create Account</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        const authShell = document.getElementById('authShell');
+        const userBtn = document.getElementById('userBtn');
+        const adminBtn = document.getElementById('adminBtn');
+        const roleInput = document.getElementById('roleInput');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        const formTitle = document.getElementById('formTitle');
+        const formSubtitle = document.getElementById('formSubtitle');
+        const promoTitle = document.getElementById('promoTitle');
+        const promoText = document.getElementById('promoText');
+        const promoImage = document.getElementById('promoImage');
+        const togglePrompt = document.getElementById('togglePrompt');
+        const toggleLink = document.getElementById('toggleLink');
+        const promoSwitchBtn = document.getElementById('promoSwitchBtn');
+        const loginError = document.getElementById('loginError');
+        const signupError = document.getElementById('signupError');
+
+        let currentView = 'login';
+        let currentRole = 'user';
+
+        function setRole(role) {
+            currentRole = role;
+            roleInput.value = role;
+            userBtn.classList.toggle('active', role === 'user');
+            adminBtn.classList.toggle('active', role === 'admin');
+
+            if (role === 'admin') {
+                promoTitle.textContent = 'Admin access with full control.';
+                promoText.textContent = 'Log in as admin to manage products, stock, and orders from one clean panel.';
+                promoImage.src = 'images/back-img-2.jpg';
+            } else {
+                promoTitle.textContent = 'Healthy fish, fast login.';
+                promoText.textContent = 'Switch between user and admin access with a clear, visible layout that stays readable on desktop and mobile.';
+                promoImage.src = 'images/header-1.png';
+            }
+        }
+
+        function showLogin() {
+            currentView = 'login';
+            loginForm.classList.add('active');
+            signupForm.classList.remove('active');
+            formTitle.textContent = 'Welcome Back!';
+            formSubtitle.textContent = 'Sign in to Fish & Accessories Store';
+            togglePrompt.textContent = "Don't have an account?";
+            toggleLink.textContent = 'Sign Up';
+            promoSwitchBtn.textContent = 'Create Account';
+            loginError.style.display = 'none';
+            signupError.style.display = 'none';
+        }
+
+        function showSignup() {
+            currentView = 'signup';
+            signupForm.classList.add('active');
+            loginForm.classList.remove('active');
+            formTitle.textContent = 'Create Account';
+            formSubtitle.textContent = 'Join Fish & Accessories Store today';
+            togglePrompt.textContent = 'Already have an account?';
+            toggleLink.textContent = 'Sign In';
+            promoSwitchBtn.textContent = 'Sign In';
+            loginError.style.display = 'none';
+            signupError.style.display = 'none';
+        }
+
+        function toggleForms() {
+            if (currentView === 'login') {
+                showSignup();
+            } else {
+                showLogin();
+            }
+        }
+
+        userBtn.addEventListener('click', () => setRole('user'));
+        adminBtn.addEventListener('click', () => setRole('admin'));
+        toggleLink.addEventListener('click', toggleForms);
+        promoSwitchBtn.addEventListener('click', toggleForms);
+
+        loginForm.addEventListener('submit', function () {
+            loginError.style.display = 'none';
+        });
+
+        signupForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const password = document.getElementById('signupPassword').value;
+            const confirm = document.getElementById('signupConfirm').value;
+
+            if (password !== confirm) {
+                signupError.textContent = 'Passwords do not match.';
+                signupError.style.display = 'block';
+                return;
+            }
+
+            if (password.length < 6) {
+                signupError.textContent = 'Password must be at least 6 characters.';
+                signupError.style.display = 'block';
+                return;
+            }
+
+            signupError.style.display = 'none';
+            alert('Signup form is ready. Connect it to PHP next if you want real registration.');
+        });
+
+        // Read role from URL parameter and set it
+        const urlParams = new URLSearchParams(window.location.search);
+        const roleParam = urlParams.get('role');
+        
+        showLogin();
+        setRole(roleParam === 'admin' ? 'admin' : 'user');
+    </script>
+</body>
+</html>
