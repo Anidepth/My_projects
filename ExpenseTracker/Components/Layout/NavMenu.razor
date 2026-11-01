@@ -1,0 +1,75 @@
+@inject AppSettingsService Settings
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+
+<aside class="sidebar">
+    <div class="brand">
+        <span class="brand-mark">◆</span>
+        <span class="brand-text">Ledger</span>
+        <button class="collapse-btn" @onclick="OnToggleCollapse" title="@(Collapsed ? "Expand sidebar" : "Collapse sidebar")">
+            @(Collapsed ? "»" : "«")
+        </button>
+    </div>
+
+    <nav class="nav-links">
+        <NavLink href="" Match="NavLinkMatch.All" class="nav-link">
+            <span class="nav-icon">⌂</span><span class="nav-label">Dashboard</span>
+        </NavLink>
+        <NavLink href="expenses" class="nav-link">
+            <span class="nav-icon">≡</span><span class="nav-label">Expenses</span>
+        </NavLink>
+        <NavLink href="settings" class="nav-link">
+            <span class="nav-icon">⚙</span><span class="nav-label">Settings</span>
+        </NavLink>
+    </nav>
+
+    <div class="sidebar-footer">
+        <label class="sidebar-currency-label">Currency</label>
+        <select class="input input--sidebar" value="@Settings.Currency" @onchange="OnCurrencyChanged">
+            @foreach (var c in Currencies.All)
+            {
+                <option value="@c.Code">@c.Code</option>
+            }
+        </select>
+
+        @if (!string.IsNullOrEmpty(username))
+        {
+            <div class="sidebar-account">
+                <span class="sidebar-username">@username</span>
+                <button class="sidebar-logout" @onclick="LogoutAsync">Log out</button>
+            </div>
+        }
+    </div>
+</aside>
+
+@inject IJSRuntime JS
+
+@code {
+    [Parameter] public bool Collapsed { get; set; }
+    [Parameter] public EventCallback OnToggleCollapse { get; set; }
+
+    private string? username;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        username = state.User.Identity?.Name;
+    }
+
+    // No antiforgery token generated here — login/register pages provide tokens for
+    // form POSTs. Using the sidebar to generate tokens caused cookie/request token
+    // mismatches when multiple components regenerated tokens during render.
+
+    private async Task LogoutAsync()
+    {
+        // Import the JS module and call the helper to fetch token + POST logout
+        var module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/antiforgery.js");
+        await module.InvokeVoidAsync("logoutWithToken");
+    }
+
+    private async Task OnCurrencyChanged(ChangeEventArgs e)
+    {
+        var code = e.Value?.ToString() ?? "NPR";
+        await Settings.SetCurrencyAsync(code);
+    }
+}
+

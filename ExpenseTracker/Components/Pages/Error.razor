@@ -1,0 +1,15 @@
+@page "/Error"
+@using System.Diagnostics
+
+<PageTitle>Error — Ledger</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Something went wrong</h1>
+        <p class="page-subtitle">Request ID: @(Activity.Current?.Id ?? "n/a")</p>
+    </div>
+</div>
+<p class="empty-state">Try going back to the <a href="/">dashboard</a>.</p>
+
+@code {
+}

@@ -1,0 +1,72 @@
+@page "/login"
+@layout AuthLayout
+
+<PageTitle>Log in — Ledger</PageTitle>
+
+<div class="auth-shell">
+    <div class="auth-marketing">
+        <div class="auth-brand"><span class="brand-mark">◆</span> Ledger</div>
+
+        <div class="auth-art">
+            <div class="auth-card auth-card--a"><span>📊</span></div>
+            <div class="auth-card auth-card--b"><span>💳</span></div>
+            <span class="auth-emoji">🪙</span>
+        </div>
+
+        <h1>Know where<br /><span class="accent-text">every rupee</span> goes.</h1>
+    </div>
+
+    <div class="auth-panel">
+        <div class="auth-box">
+            <h2>Log into Ledger</h2>
+
+            @if (HasError)
+            {
+                <p class="auth-error">Incorrect username or password.</p>
+            }
+            @if (IsRegistered)
+            {
+                <p class="auth-success">Account created. Please sign in.</p>
+            }
+
+            <form method="post" action="/account/login" class="auth-form">
+                <input type="hidden" name="__RequestVerificationToken" value="@RequestVerificationToken" />
+                <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+                <input class="input" type="text" name="username" placeholder="Username" required autofocus />
+                <input class="input" type="password" name="password" placeholder="Password" required />
+                <button type="submit" class="btn btn-primary auth-submit">Log in</button>
+            </form>
+
+            <div class="auth-divider"></div>
+
+            <a class="btn btn-ghost auth-submit" href="/register">Create new account</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? ErrorFlag { get; set; }
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "registered")]
+    private string? RegisteredFlag { get; set; }
+
+    private bool HasError => !string.IsNullOrEmpty(ErrorFlag);
+    private bool IsRegistered => !string.IsNullOrEmpty(RegisteredFlag);
+    [Inject] private Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery { get; set; } = default!;
+    [Inject] private IHttpContextAccessor HttpContextAccessor { get; set; } = default!;
+
+    private string? RequestVerificationToken;
+
+    protected override void OnInitialized()
+    {
+        var http = HttpContextAccessor.HttpContext;
+        if (http is not null)
+        {
+            RequestVerificationToken = Antiforgery.GetAndStoreTokens(http).RequestToken;
+        }
+    }
+}

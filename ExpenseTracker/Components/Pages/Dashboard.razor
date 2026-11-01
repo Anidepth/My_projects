@@ -1,0 +1,165 @@
+@page "/"
+@attribute [Authorize]
+@implements IDisposable
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AppSettingsService Settings
+@inject CurrentUserService CurrentUser
+
+<PageTitle>Dashboard — Ledger</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Overview</h1>
+        <p class="page-subtitle">@DateTime.Now.ToString("MMMM yyyy")</p>
+    </div>
+</div>
+
+@if (loading)
+{
+    <p class="empty-state">Loading…</p>
+}
+else
+{
+    <div class="stat-grid">
+        <div class="stat-card stat-card--accent">
+            <span class="stat-label">Spent this month</span>
+            <span class="stat-value">@MoneyFormat.Format(monthTotal, Settings.Currency)</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Transactions</span>
+            <span class="stat-value">@monthCount</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Avg per transaction</span>
+            <span class="stat-value">@MoneyFormat.Format(avgAmount, Settings.Currency)</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Top category</span>
+            <span class="stat-value stat-value--sm">@(topCategory ?? "—")</span>
+        </div>
+    </div>
+
+    <div class="content-grid">
+        <section class="panel">
+            <h2>By category</h2>
+            @if (!categoryTotals.Any())
+            {
+                <p class="empty-state">No expenses logged this month yet.</p>
+            }
+            else
+            {
+                <div class="bar-list">
+                    @foreach (var c in categoryTotals)
+                    {
+                        <div class="bar-row">
+                            <span class="bar-label">@c.Category</span>
+                            <div class="bar-track">
+                                <div class="bar-fill" style="width:@(c.Percent.ToString("0.##"))%"></div>
+                            </div>
+                            <span class="bar-amount">@MoneyFormat.Format(c.Total, Settings.Currency)</span>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="panel">
+            <h2>Recent activity</h2>
+            @if (!recent.Any())
+            {
+                <p class="empty-state">Nothing logged yet — add your first expense.</p>
+            }
+            else
+            {
+                <ul class="recent-list">
+                    @foreach (var e in recent)
+                    {
+                        <li>
+                            <div class="recent-icon">@CategoryIcon(e.Category)</div>
+                            <div class="recent-info">
+                                <span class="recent-desc">@e.Description</span>
+                                <span class="recent-meta">@e.Category · @e.Date.ToString("MMM d")</span>
+                            </div>
+                            <span class="recent-amount">@MoneyFormat.Format(e.Amount, Settings.Currency)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private bool loading = true;
+    private decimal monthTotal;
+    private int monthCount;
+    private decimal avgAmount;
+    private string? topCategory;
+    private List<CategoryTotal> categoryTotals = new();
+    private List<Expense> recent = new();
+    private int userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        userId = await CurrentUser.GetUserIdAsync();
+        await Settings.EnsureLoadedAsync();
+        Settings.OnChange += HandleSettingsChange;
+        await LoadAsync();
+    }
+
+    private void HandleSettingsChange() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Settings.OnChange -= HandleSettingsChange;
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var now = DateTime.Today;
+
+        var monthExpenses = await db.Expenses
+            .Where(e => e.UserId == userId && e.Date.Month == now.Month && e.Date.Year == now.Year)
+            .ToListAsync();
+
+        monthTotal = monthExpenses.Sum(e => e.Amount);
+        monthCount = monthExpenses.Count;
+        avgAmount = monthCount > 0 ? monthTotal / monthCount : 0;
+
+        var grouped = monthExpenses
+            .GroupBy(e => e.Category)
+            .Select(g => new CategoryTotal(g.Key, g.Sum(e => e.Amount), 0))
+            .OrderByDescending(g => g.Total)
+            .ToList();
+
+        var max = grouped.Any() ? grouped.Max(g => g.Total) : 0m;
+        categoryTotals = grouped
+            .Select(g => g with { Percent = max > 0 ? (double)(g.Total / max) * 100 : 0 })
+            .ToList();
+        topCategory = grouped.FirstOrDefault()?.Category;
+
+        recent = await db.Expenses
+            .Where(e => e.UserId == userId)
+            .OrderByDescending(e => e.Date)
+            .ThenByDescending(e => e.Id)
+            .Take(6)
+            .ToListAsync();
+
+        loading = false;
+    }
+
+    private static string CategoryIcon(string category) => category switch
+    {
+        "Food & Dining" => "🍽",
+        "Transportation" => "🚗",
+        "Housing" => "🏠",
+        "Utilities" => "💡",
+        "Entertainment" => "🎬",
+        "Shopping" => "🛍",
+        "Health" => "💊",
+        "Travel" => "✈",
+        "Education" => "📚",
+        _ => "•"
+    };
+
+    private record CategoryTotal(string Category, decimal Total, double Percent);
+}

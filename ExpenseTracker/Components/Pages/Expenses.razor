@@ -1,0 +1,322 @@
+@page "/expenses"
+@attribute [Authorize]
+@implements IDisposable
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AppSettingsService Settings
+@inject CurrentUserService CurrentUser
+
+<PageTitle>Expenses — Ledger</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Expenses</h1>
+        <p class="page-subtitle">@filtered.Count entr@(filtered.Count == 1 ? "y" : "ies") · @MoneyFormat.Format(filteredTotal, Settings.Currency) total</p>
+    </div>
+    <button class="btn btn-primary" @onclick="OpenAddForm">+ Add expense</button>
+</div>
+
+<div class="toolbar">
+    <input class="input" placeholder="Search description or notes…" value="@searchTerm" @oninput="OnSearchChanged" />
+    <select class="input" value="@categoryFilter" @onchange="OnCategoryChanged">
+        <option value="">All categories</option>
+        @foreach (var c in ExpenseCategories.All)
+        {
+            <option value="@c">@c</option>
+        }
+    </select>
+</div>
+
+@if (loading)
+{
+    <p class="empty-state">Loading…</p>
+}
+else if (!filtered.Any())
+{
+    <p class="empty-state">No expenses match. Try clearing filters, or add a new one.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                    <th>Payment</th>
+                    <th class="text-right">Amount</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in filtered)
+                {
+                    <tr>
+                        <td>
+                            <span class="cell-title">@e.Description</span>
+                            @if (!string.IsNullOrWhiteSpace(e.Notes))
+                            {
+                                <span class="cell-sub">@e.Notes</span>
+                            }
+                        </td>
+                        <td><span class="tag">@e.Category</span></td>
+                        <td>@e.Date.ToString("MMM d, yyyy")</td>
+                        <td>@e.PaymentMethod</td>
+                        <td class="text-right amount">@MoneyFormat.Format(e.Amount, Settings.Currency)</td>
+                        <td class="text-right row-actions">
+                            <button class="icon-btn" title="Edit" @onclick="() => OpenEditForm(e)">✎</button>
+                            <button class="icon-btn icon-btn--danger" title="Delete" @onclick="() => RequestDelete(e)">🗑</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (showForm)
+{
+    <div class="overlay" @onclick="CloseForm"></div>
+    <div class="drawer">
+        <div class="drawer-header">
+            <h2>@(editing.Id == 0 ? "Add expense" : "Edit expense")</h2>
+            <button class="icon-btn" @onclick="CloseForm">✕</button>
+        </div>
+        <EditForm EditContext="editContext" OnSubmit="HandleSubmit" class="drawer-form">
+            <DataAnnotationsValidator />
+
+            <label class="field">
+                <span>Description</span>
+                <InputText @bind-Value="editing.Description" class="input" placeholder="e.g. Grocery run" />
+                <ValidationMessage For="() => editing.Description" class="field-error" />
+            </label>
+
+            <label class="field">
+                <span>Amount <em>(@Currencies.SymbolFor(Settings.Currency))</em></span>
+                <!-- Use a nullable backing field so the input can appear empty for new expenses -->
+                <InputNumber TValue="decimal?" @bind-Value="formAmount" class="input" placeholder="0.00" />
+                <ValidationMessage For="() => editing.Amount" class="field-error" />
+            </label>
+
+            <label class="field">
+                <span>Category</span>
+                <InputSelect @bind-Value="editing.Category" class="input">
+                    @foreach (var c in ExpenseCategories.All)
+                    {
+                        <option value="@c">@c</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label class="field">
+                <span>Date</span>
+                <InputDate @bind-Value="editing.Date" class="input" />
+            </label>
+
+            <label class="field">
+                <span>Payment method</span>
+                <InputSelect @bind-Value="editing.PaymentMethod" class="input">
+                    @foreach (var p in PaymentMethods.All)
+                    {
+                        <option value="@p">@p</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label class="field">
+                <span>Notes <em>(optional)</em></span>
+                <InputTextArea @bind-Value="editing.Notes" class="input" rows="2" placeholder="Anything worth remembering" />
+            </label>
+
+            <div class="drawer-actions">
+                <button type="button" class="btn btn-ghost" @onclick="CloseForm">Cancel</button>
+                <button type="submit" class="btn btn-primary">@(editing.Id == 0 ? "Add expense" : "Save changes")</button>
+            </div>
+        </EditForm>
+    </div>
+}
+
+@if (deleteTarget is not null)
+{
+    <div class="overlay" @onclick="() => deleteTarget = null"></div>
+    <div class="confirm-dialog">
+        <h3>Delete this expense?</h3>
+        <p>"@deleteTarget.Description" for @MoneyFormat.Format(deleteTarget.Amount, Settings.Currency) will be removed permanently.</p>
+        <div class="drawer-actions">
+            <button class="btn btn-ghost" @onclick="() => deleteTarget = null">Cancel</button>
+            <button class="btn btn-danger" @onclick="ConfirmDeleteAsync">Delete</button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Expense> all = new();
+    private List<Expense> filtered = new();
+    private decimal filteredTotal;
+    private bool loading = true;
+    private int userId;
+
+    private string searchTerm = "";
+    private string categoryFilter = "";
+
+    private bool showForm;
+    private Expense editing = new();
+    private Expense? deleteTarget;
+    private EditContext? editContext;
+    private decimal? formAmount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        userId = await CurrentUser.GetUserIdAsync();
+        await Settings.EnsureLoadedAsync();
+        Settings.OnChange += HandleSettingsChange;
+        await LoadAsync();
+    }
+
+    private void HandleSettingsChange() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Settings.OnChange -= HandleSettingsChange;
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        all = await db.Expenses
+            .Where(e => e.UserId == userId)
+            .OrderByDescending(e => e.Date)
+            .ThenByDescending(e => e.Id)
+            .ToListAsync();
+        ApplyFilters();
+        loading = false;
+    }
+
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+        ApplyFilters();
+    }
+
+    private void OnCategoryChanged(ChangeEventArgs e)
+    {
+        categoryFilter = e.Value?.ToString() ?? "";
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        IEnumerable<Expense> query = all;
+        if (!string.IsNullOrWhiteSpace(categoryFilter))
+            query = query.Where(e => e.Category == categoryFilter);
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+            query = query.Where(e =>
+                e.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (e.Notes ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+        filtered = query.ToList();
+        filteredTotal = filtered.Sum(e => e.Amount);
+    }
+
+    private void OpenAddForm()
+    {
+        editing = new Expense { Date = DateTime.Today };
+        formAmount = null; // show empty amount field for new expense
+        editContext = new EditContext(editing);
+        showForm = true;
+    }
+
+    private void OpenEditForm(Expense e)
+    {
+        editing = new Expense
+        {
+            Id = e.Id,
+            Description = e.Description,
+            // Stored amount is always in the base currency (NPR) — show it converted
+            // into whatever currency is currently selected, so the field reads naturally.
+            Amount = Math.Round(ExchangeRates.ConvertFromBase(e.Amount, Settings.Currency), 2),
+            Category = e.Category,
+            Date = e.Date,
+            PaymentMethod = e.PaymentMethod,
+            Notes = e.Notes
+        };
+        formAmount = editing.Amount;
+        editContext = new EditContext(editing);
+        showForm = true;
+    }
+
+    private void CloseForm() => showForm = false;
+
+    private async Task SaveAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        // The user typed the amount in the currently selected display currency —
+        // convert it back to the base currency (NPR) before persisting.
+        var amountInBase = ExchangeRates.ConvertToBase(editing.Amount, Settings.Currency);
+
+        if (editing.Id == 0)
+        {
+            db.Expenses.Add(new Expense
+            {
+                UserId = userId,
+                Description = editing.Description,
+                Amount = amountInBase,
+                Category = editing.Category,
+                Date = editing.Date,
+                PaymentMethod = editing.PaymentMethod,
+                Notes = editing.Notes
+            });
+        }
+        else
+        {
+            var entity = await db.Expenses.FindAsync(editing.Id);
+            if (entity is not null && entity.UserId == userId)
+            {
+                entity.Description = editing.Description;
+                entity.Amount = amountInBase;
+                entity.Category = editing.Category;
+                entity.Date = editing.Date;
+                entity.PaymentMethod = editing.PaymentMethod;
+                entity.Notes = editing.Notes;
+            }
+        }
+
+        await db.SaveChangesAsync();
+        showForm = false;
+        await LoadAsync();
+    }
+
+    private async Task HandleSubmit(EditContext ctx)
+    {
+        // Mirror the nullable formAmount into the editing model before validation/save
+        editing.Amount = formAmount ?? 0m;
+
+        if (editContext is null)
+        {
+            editContext = new EditContext(editing);
+        }
+
+        var isValid = editContext.Validate();
+        if (!isValid)
+        {
+            return;
+        }
+
+        await SaveAsync();
+    }
+
+    private void RequestDelete(Expense e) => deleteTarget = e;
+
+    private async Task ConfirmDeleteAsync()
+    {
+        if (deleteTarget is null) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var entity = await db.Expenses.FindAsync(deleteTarget.Id);
+        if (entity is not null && entity.UserId == userId)
+        {
+            db.Expenses.Remove(entity);
+            await db.SaveChangesAsync();
+        }
+        deleteTarget = null;
+        await LoadAsync();
+    }
+}

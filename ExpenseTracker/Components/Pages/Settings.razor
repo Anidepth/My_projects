@@ -1,0 +1,247 @@
+@page "/settings"
+@attribute [Authorize]
+@implements IDisposable
+@using Microsoft.AspNetCore.Antiforgery
+@inject AppSettingsService SettingsService
+@inject IAntiforgery Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject CurrentUserService CurrentUser
+
+<PageTitle>Appearance — Ledger</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>Appearance</h1>
+        <p class="page-subtitle">Customize theme, accent and typography.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <p class="auth-error">@ErrorMessage</p>
+}
+@if (!string.IsNullOrEmpty(SuccessMessage))
+{
+    <p class="auth-success">@SuccessMessage</p>
+}
+
+<section class="settings-section">
+    <div class="settings-section-head">
+        <h2>Theme</h2>
+        <span class="field-hint">Preview shows how the app will look</span>
+    </div>
+
+    <div class="theme-swatches">
+        @foreach (var theme in ColorThemes.All)
+        {
+            <button type="button"
+                    class="swatch-card @(colorTheme == theme.Key ? "swatch-card--active" : "")"
+                    style="@(colorTheme == theme.Key ? $"border-color:{AccentFor(theme.Key)}" : "")"
+                    @onclick="() => SetColorTheme(theme.Key)">
+                <span class="swatch-preview theme-scope"
+                      data-theme="@theme.Key"
+                      data-mode="@(pureBlack ? "dark" : "light")"
+                      data-pure-black="@(pureBlack ? "true" : "false")">
+                    <span class="swatch-header"></span>
+                    <span class="swatch-body">
+                        <span class="swatch-chip">
+                            <span class="swatch-chip-a"></span>
+                            <span class="swatch-chip-b"></span>
+                        </span>
+                    </span>
+                    <span class="swatch-footer">
+                        <span class="swatch-dot"></span>
+                        <span class="swatch-bar"></span>
+                    </span>
+                    @if (colorTheme == theme.Key)
+                    {
+                        <span class="swatch-check" style="background:@AccentFor(theme.Key)">✓</span>
+                    }
+                </span>
+                <span class="swatch-label">@theme.Label</span>
+            </button>
+        }
+    </div>
+
+    <div class="toggle-row">
+        <div>
+            <h3>Pure black dark mode</h3>
+            <p class="field-hint">Use a true black background for OLED screens</p>
+        </div>
+        <button type="button" class="switch @(pureBlack ? "switch--on" : "")" @onclick="TogglePureBlack">
+            <span class="switch-knob"></span>
+        </button>
+    </div>
+</section>
+
+<section class="settings-section">
+    <h2>Typography &amp; Currency</h2>
+
+    <div class="typography-grid">
+        <div>
+            <span class="field-label">Font size</span>
+            <input type="range" min="12" max="20" step="1" class="slider" value="@fontSize" @oninput="OnFontSizeInput" />
+            <p class="field-hint">Current: @(fontSize) px</p>
+        </div>
+        <div>
+            <span class="field-label">Display currency</span>
+            <select class="input" value="@currency" @onchange="OnCurrencyInput">
+                @foreach (var c in Currencies.All)
+                {
+                    <option value="@c.Code">@c.Label</option>
+                }
+            </select>
+            <!-- Preview removed: do not show converted sample amount when changing display currency -->
+        </div>
+    </div>
+</section>
+
+<section class="settings-section">
+    <h2>Username</h2>
+    <form method="post" action="/account/update-username" class="account-form">
+        <input type="hidden" name="__RequestVerificationToken" value="@RequestVerificationToken" />
+        <label class="field">
+            <span>Username</span>
+            <input class="input" type="text" name="username" value="@currentUsername" required minlength="3" />
+        </label>
+        <button type="submit" class="btn btn-primary">Save username</button>
+    </form>
+</section>
+
+<section class="settings-section">
+    <h2>Email</h2>
+    <form method="post" action="/account/update-email" class="account-form">
+        <input type="hidden" name="__RequestVerificationToken" value="@RequestVerificationToken" />
+        <label class="field">
+            <span>Email</span>
+            <input class="input" type="email" name="email" value="@currentEmail" placeholder="you@example.com" />
+        </label>
+        <button type="submit" class="btn btn-primary">Save email</button>
+    </form>
+</section>
+
+<section class="settings-section">
+    <h2>Password</h2>
+    <form method="post" action="/account/change-password" class="account-form">
+        <input type="hidden" name="__RequestVerificationToken" value="@RequestVerificationToken" />
+        <label class="field">
+            <span>Current password</span>
+            <input class="input" type="password" name="currentPassword" required />
+        </label>
+        <label class="field">
+            <span>New password</span>
+            <input class="input" type="password" name="newPassword" required minlength="6" />
+        </label>
+        <label class="field">
+            <span>Confirm new password</span>
+            <input class="input" type="password" name="confirmPassword" required minlength="6" />
+        </label>
+        <button type="submit" class="btn btn-primary">Change password</button>
+    </form>
+</section>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? ErrorMessage { get; set; }
+
+    [SupplyParameterFromQuery(Name = "success")]
+    private string? SuccessFlag { get; set; }
+
+    private string? SuccessMessage => SuccessFlag switch
+    {
+        "username" => "Username updated.",
+        "email" => "Email updated.",
+        "password" => "Password changed.",
+        _ => null
+    };
+
+    private string? RequestVerificationToken;
+    private string currentUsername = "";
+    private string currentEmail = "";
+
+    private string colorTheme = "Default";
+    private bool pureBlack;
+    private int fontSize = 15;
+    private string currency = "NPR";
+
+    private static readonly Dictionary<string, string> AccentHex = new()
+    {
+        ["Default"] = "#b3552f",
+        ["Dynamic"] = "#6c5ce7",
+        ["GreenApple"] = "#5c9a2f",
+        ["Lavender"] = "#8a7ae0",
+        ["Midnight"] = "#3f5aa8",
+    };
+
+    private static string AccentFor(string key) => AccentHex.TryGetValue(key, out var v) ? v : "#b3552f";
+
+    // Runs during the initial (still-static) render, where HttpContext is available —
+    // same pattern already used on Login/Register/Account — so the antiforgery token
+    // can be generated and embedded in the forms below.
+    protected override void OnInitialized()
+    {
+        var http = HttpContextAccessor.HttpContext;
+        if (http is not null)
+        {
+            RequestVerificationToken = Antiforgery.GetAndStoreTokens(http).RequestToken;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SettingsService.EnsureLoadedAsync();
+        RefreshFromService();
+        SettingsService.OnChange += HandleSettingsChange;
+
+        var userId = await CurrentUser.GetUserIdAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var user = await db.Users.FindAsync(userId);
+        if (user is not null)
+        {
+            currentUsername = user.Username;
+            currentEmail = user.Email;
+        }
+    }
+
+    // Keeps this page's controls in sync when settings change elsewhere (e.g. the
+    // currency switcher in the sidebar), instead of only reflecting edits made here.
+    private void RefreshFromService()
+    {
+        colorTheme = SettingsService.ColorTheme;
+        pureBlack = SettingsService.PureBlackDarkMode;
+        fontSize = SettingsService.FontSize;
+        currency = SettingsService.Currency;
+    }
+
+    private void HandleSettingsChange()
+    {
+        RefreshFromService();
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => SettingsService.OnChange -= HandleSettingsChange;
+
+    // Every control applies immediately and persists right away — same pattern as a
+    // native phone settings screen, no separate "Save" step needed.
+    private Task SetColorTheme(string theme) { colorTheme = theme; return ApplyAndSaveAsync(); }
+    private Task TogglePureBlack() { pureBlack = !pureBlack; return ApplyAndSaveAsync(); }
+
+    private Task OnFontSizeInput(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var v)) fontSize = v;
+        return ApplyAndSaveAsync();
+    }
+
+    private Task OnCurrencyInput(ChangeEventArgs e)
+    {
+        currency = e.Value?.ToString() ?? "NPR";
+        return ApplyAndSaveAsync();
+    }
+
+    private async Task ApplyAndSaveAsync()
+    {
+        SettingsService.ApplyLocal(colorTheme, pureBlack, fontSize, currency);
+        await SettingsService.SaveAsync();
+    }
+}

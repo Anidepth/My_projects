@@ -1,0 +1,60 @@
+@page "/register"
+@layout AuthLayout
+
+<PageTitle>Create account — Ledger</PageTitle>
+
+<div class="auth-shell">
+    <div class="auth-marketing">
+        <div class="auth-brand"><span class="brand-mark">◆</span> Ledger</div>
+
+        <div class="auth-art">
+            <div class="auth-card auth-card--a"><span>📊</span></div>
+            <div class="auth-card auth-card--b"><span>💳</span></div>
+            <span class="auth-emoji">🪙</span>
+        </div>
+
+        <h1>Start tracking<br /><span class="accent-text">in minutes</span>.</h1>
+    </div>
+
+    <div class="auth-panel">
+        <div class="auth-box">
+            <h2>Create your account</h2>
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <p class="auth-error">@ErrorMessage</p>
+            }
+
+            <form method="post" action="/account/register" class="auth-form">
+                <input type="hidden" name="__RequestVerificationToken" value="@RequestVerificationToken" />
+                <input class="input" type="text" name="username" placeholder="Username" required minlength="3" autofocus />
+                <input class="input" type="email" name="email" placeholder="Email (optional)" />
+                <input class="input" type="password" name="password" placeholder="Password" required minlength="6" />
+                <input class="input" type="password" name="confirmPassword" placeholder="Confirm password" required minlength="6" />
+                <button type="submit" class="btn btn-primary auth-submit">Create account</button>
+            </form>
+
+            <div class="auth-divider"></div>
+
+            <a class="btn btn-ghost auth-submit" href="/login">Already have an account? Log in</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? ErrorMessage { get; set; }
+    [Inject] private Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery { get; set; } = default!;
+    [Inject] private IHttpContextAccessor HttpContextAccessor { get; set; } = default!;
+
+    private string? RequestVerificationToken;
+
+    protected override void OnInitialized()
+    {
+        var http = HttpContextAccessor.HttpContext;
+        if (http is not null)
+        {
+            RequestVerificationToken = Antiforgery.GetAndStoreTokens(http).RequestToken;
+        }
+    }
+}
